@@ -1,0 +1,15 @@
+Package: GeTalleleR
+Title: A method for integrative analysis and visualization of DNA and RNA allele frequencies
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "First",
+           family = "Last",
+           role = c("aut", "cre"),
+           email = "first.last@example.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Asymmetric allele expression typically indicates functional and/or structural features associated with the underlying genetic variants. When integrated, RNA and DNA allele frequencies can reveal patterns characteristic of a wide-range of biological traits, including ploidy changes, genome admixture, allele-specific expression and gene-dosage transcriptional response. To assess RNA and DNA allele frequencies from matched sequencing datasets, we introduce GeTallele: a mathematical model and a toolbox that provides a suit of functions for integrative analysis, statistical assessment and visualization of Genome and Transcriptome allele frequencies. The toolbox introduces a method for generating model distributions of variant allele frequencies (VAF) with a given variant read probability. Using model VAF probabilities, GeTallele allows estimation and comparison of variant read probabilities (VAF distributions) in a sequencing data sets. We demonstrate this functionality across cancer DNA and RNA sequencing data sets. Based on our evaluation, variant read probabilities can serve as a dependable indicator to assess gene and chromosomal allele asymmetries and to aid calls of genomic events in matched sequencing RNA and DNA datasets..
+License: `use_gpl3_license()`
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0.9000
