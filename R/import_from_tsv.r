@@ -91,15 +91,15 @@ if (mod(nb_rows,4)!=0){
 positions in cellfun(@double,cellfun(@string,from_file.textdata(2:4:},2),'UniformOutput',0))){){
 
 #SNVcount 5
-SNVcount <- reshape(from_file.data(:,5),4,nb_rows/4)'
+SNVcount <- t(reshape(from_file.data(:,5),4,nb_rows/4))
 SNVcount <- SNVcount(:,lyr)
 
 #Refcount 6
-Refcount <- reshape(from_file.data(:,6),4,nb_rows/4)'
+Refcount <- t(reshape(from_file.data(:,6),4,nb_rows/4))
 Refcount <- Refcount(:,lyr)
 
 #ratio 9
-ratio <- reshape(from_file.data(:,9),4,nb_rows/4)'
+ratio <- t(reshape(from_file.data(:,9),4,nb_rows/4))
 ratio <- ratio(:,lyr)
 
 data_matrix <- [chromosomes, positions, ratio, SNVcount, Refcount]

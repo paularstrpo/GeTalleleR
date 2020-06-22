@@ -1,4 +1,4 @@
-find_win_and_vpr <- function(data,chr,start_pos,}_pos,layer,sensitivity,model_05,models_mat,bin_edges){
+find_win_and_vpr <- function(data,chr,start_pos,end_pos,layer,sensitivity,model_05,models_mat,bin_edges){
 # The authors make no representations about the suitability of this software for any purpose.
 # It is provided "as is" without express or implied warranty.
 #
@@ -21,29 +21,28 @@ find_win_and_vpr <- function(data,chr,start_pos,}_pos,layer,sensitivity,model_05
 # If you have any questions please contact: p.m.slowinski@exeter.ac.uk
 
 # START
-#here we find indices that correspond to the chromosome that contains the segment
-
+# here we find indices that correspond to the chromosome that contains the segment
 results.chr <- chr
 results.layer <- layer
 
-idx_chr=find(data(:,1)==chr)
+idx_chr <- which(data[, 1]==chr)
 if (sum(diff(idx_chr)>1)>0){
-    disp(['warning: something is wrong with the chromosome: ' num2str(chr)])
-    #quick check if a chromosome was in consecutive rows
+    print(paste0('warning: something is wrong with the chromosome: ', chr))
+    # quick check if a chromosome was in consecutive rows
 }
 
 # data on the chromosome containing the segment of interest
-data_chr <- data(idx_chr,2:6)# data_chr is a matrix with base-pairs and all layers
+data_chr <- data[idx_chr, 2:6]# data_chr is a matrix with base-pairs and all layers
 
-# data in the segment
-idx_sgmnt_start=find(data_chr(:,1)>=start_pos,1,'first')
-idx_sgmnt_}=find(data_chr(:,1)<=}_pos,1,'last')
+# grab data in the segment
+idx_sgmnt_start <- which(data_chr[,1] >= start_pos)# ,1,'first');
+idx_sgmnt_end <- which(data_chr[,1] <= end_pos)# ,1,'last');
 
 # processeing of segments with no data
-if (isempty(idx_sgmnt_start) || isempty(idx_sgmnt_length(data_chr)) || data_chr(idx_sgmnt_length(data_chr),1)<data_chr(idx_sgmnt_start,1)){
-    results.chr <- NaN
-    results.layer <- NaN
-    results.vpr_data <- NaN
+if (is.na(idx_sgmnt_start) || is.na(idx_sgmnt_length(data_chr)) || data_chr[idx_sgmnt_length(data_chr),1]<data_chr(idx_sgmnt_start,1)){
+    results.chr <- NA
+    results.layer <- NA
+    results.vpr_data <- NA
     #disp('no data in segment')
     return
 }
@@ -61,7 +60,7 @@ smpl <- data_sgmnt(:,layer+1)
 results.layer <- layer
 iptsT <- findchangepts(abs(smpl-0.5)+0.5,'MinThreshold',sensitivity)#could instead set 'MinDistance', Lmin, to 11 ponints
 
-idx_all_edges <- [1 iptsT' ds_size]
+idx_all_edges <- [1, t(iptsT), ds_size]
 idx_gap <- diff(idx_all_edges)<10){
 
 # always keep the start point and merge with the second window instead
@@ -98,7 +97,7 @@ m <- m(idx_sorted)
 d_fitted_vprs <- diff(sorted_fitted_vprs)){
 idx_same_vprs=find(d_fitted_vprs<=0.011)
 
-while (!isempty(idx_same_vprs)){
+while (!is.na(idx_same_vprs)){
     idx_rm <- zeros(1,numel(m))
 
     for (i in idx_same_vprs(}:-1:1)){
@@ -149,11 +148,12 @@ fit_vpr <- function(x1,models,bin_edges){
 
 Nx <- sparse(histc(x1,bin_edges))
 lx <- sum(Nx)
-csx <- cumsum(Nx/lx)'
+csx <- t(cumsum(Nx/lx))
 csx_mat <- repmat(csx,51,1)
 
 emd_v <- sum(abs(csx_mat-models),2)
 
 [!,i_vpr] <- min(emd_v)
 vpr <- (i_vpr+49)/100
+
 }

@@ -1,4 +1,4 @@
- <- function(data,layer){
+plotVafandVpr <- function(data,layer){
 # The authors make no representations about the suitability of this software for any purpose.
 # It is provided "as is" without express or implied warranty.
 #
