@@ -1,4 +1,10 @@
-gen_ideal_hist <- function(matrix, bin_edges, layer_map){
+#' Generate V(pr) model distributions
+#' @param matrix A data frame with the following columns: CHR, POS, REF, ALT, Ttr, Ntr, Nex, Tex
+#' @param bins A list outputted from `farey_bins()`
+#' @param layer_map A named character vector with the column names corresponding to each layer (Nex, Ntr, Tex, Ttr).
+#' @return A list with the bootstrapped V(pr) model distributions and empirical cumulative density functions for each of the layers.
+
+gen_ideal_hist <- function(matrix, bins, layer_map){
 
 # Demand that the input matrix be a data frame with the following format:
 # CHR | POS | REF | ALT | Ttr | Ntr | Nex | Tex
@@ -59,7 +65,7 @@ for (layer in layer_map){
     # wait, is this just an ECDF for the models?
     mdl_cdf <- apply(model_samples, MARGIN = 2, function(z){
         f_sample <- abs(z-0.5)+0.5
-        Ni <- sparse(histc(f_sample, bin_edges))
+        Ni <- sparse(histc(f_sample, bins$edges))
         li <- sum(Ni)
         cumsum(Ni)/li
     })
