@@ -37,3 +37,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# MacOS spotlight indexing files
+.DS_Store
+*.DS_Store
+/*DS_Store
+/*/*DS_Store
