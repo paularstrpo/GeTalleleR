@@ -1,78 +1,37 @@
 #' Generate V(pr) model distributions
-#' @param matrix A data frame with the following columns: CHR, POS, REF, ALT, Ttr, Ntr, Nex, Tex
-#' @param bins A list outputted from `farey_bins()`
-#' @param layer_map A named character vector with the column names corresponding to each layer (Nex, Ntr, Tex, Ttr).
-#' @return A list with the bootstrapped V(pr) model distributions and empirical cumulative density functions for each of the layers.
+#' @param total_reads a numeric vector with total reads per site for one layer.
+#' @param bins_edges A vector of bin edges outputted from `farey_bins()`.
+#' @param rm.hom Logical. Remove homozygous sites before making the cumulative density function? Default is TRUE.
+#' @param nboots A number. How many bootstrap iterations to perform? Default is 10000.
+#' @return A list with the bootstrapped V(pr) model distributions and empirical cumulative density functions for one layer.
 
-gen_ideal_hist <- function(matrix, bins, layer_map){
-
-# Demand that the input matrix be a data frame with the following format:
-# CHR | POS | REF | ALT | Ttr | Ntr | Nex | Tex
-
-# Layer map must be a named character map column names to layer type.
-# Example:
-#                              Ttr                              Ntr
-# "X013_Ttr_BRCA_TCGA.BH.A0B8.01A" "X013_Ntr_BRCA_TCGA.BH.A0B8.11A"
-#                              Nex                              Tex
-# "X013_Nex_BRCA_TCGA.BH.A0B8.11A" "X013_Tex_BRCA_TCGA.BH.A0B8.01A"
-
-# extract chromosome
-chr <- matrix[, 1]
-model <- list()
-
-for (layer in layer_map){
-
-    layer <- matrix[, layer]
-
-    # Is this grabbing the column with tumor / normal vafs (or reads)? confused about the original input format
-    # l1 <- layer+6
-    # l2 <- l1+4
-
-    idx_c <- which(chr<=22)
-    # total reads?
-    # counts_vector <- matrix[idx_c, l1] + matrix[idx_c,l2]
-
-    # TODO: maybe vectorize this with *apply and use boot package to bootstrap?
-    # (https://stats.idre.ucla.edu/r/faq/how-can-i-generate-bootstrap-statistics-in-r/)
-    # This way, user can manually specify number of bootstrap iterations..
-    # model_samples <- list()
+gen_ideal_hist <- function(total_reads, bin_edges, nboots=10000, rm.hom=TRUE){
 
     # bootstrap binomial distributions for Vpr
-    model_samples <- sapply(50:100, function(k){
-        nb_reads <- as.numeric(counts_vector)
+    vaf_model <- sapply(50:100, function(k){
+        nb_reads <- as.numeric(total_reads)
 
-        p <- (k/100)*rep(1, 5000)
-        new_count <- sample(nb_reads,5000, replace=TRUE)
-        y <- rbinom(new_count, size=5000, prob=p)
-        surr1 <- y/new_count
-
-        p <- (1-k/100)*rep(1, 5000)
-        new_count <- sample(nb_reads,5000, replace=TRUE)
-        y <- rbinom(new_count, size=5000, prob=p)
-        surr2 <- y/new_count
-
-        return(c(surr1, surr2))
+        p <- (k/100)*rep(1, nboots)
+        new_count <- sample(nb_reads,nboots, replace=TRUE)
+        y <- rbinom(new_count, size=nboots, prob=p)
+        return(y/new_count)
     })
 
-    # mdl_cdf <- matrix(0, nrow=51, ncol=length(bin_edges))
-
-    # remove homozygous sites from Nex
-    if (names(layer) == 'Nex'){
-        idx <- model_samples < 0.1 | model_samples > 0.9
-        model_samples[idx] <- NA
+    # remove homozygous sites.
+    if (rm.hom){
+        idx <- vaf_model < 0.1 | vaf_model > 0.9
+        vaf_model[idx] <- NA
     }
 
-    # wait, is this just an ECDF for the models?
-    mdl_cdf <- apply(model_samples, MARGIN = 2, function(z){
-        f_sample <- abs(z-0.5)+0.5
-        Ni <- sparse(histc(f_sample, bins$edges))
-        li <- sum(Ni)
-        cumsum(Ni)/li
+    # Compute ECDF manually to ensure the same order of arguments in computing EMD
+    vaf_cdf <- apply(vaf_model, MARGIN = 2, function(z){
+        # TODO: can't seem to get farey sequence bins to work here...
+        # instead for now specifying number of bins to make.
+        # For some reason this computes a different length result for each z...
+        return(hist(z, length(bin_edges), plot=FALSE)$density) 
     })
 
     # return the bootstrapped Vpr distribution and the cumulative density function (cdf) for this layer
-    model[[names(layer)]] <- list(cdf=mdl_cdf, dist=model_samples)
-}
-# return results!
-return(model)
+    # Only need first column from vaf_model - remove rest for memory reasons
+    return(list(cdf=vaf_cdf, dist=vaf_model[, 1]))
 }
