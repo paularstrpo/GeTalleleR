@@ -12,7 +12,7 @@ gen_ideal_hist <- function(total_reads, bin_edges, nboots=10000, rm.hom=TRUE){
         nb_reads <- as.numeric(total_reads)
 
         p <- (k/100)*rep(1, nboots)
-        new_count <- sample(nb_reads,nboots, replace=TRUE)
+        new_count <- sample(nb_reads, nboots, replace=TRUE)
         y <- rbinom(new_count, size=nboots, prob=p)
         return(y/new_count)
     })
@@ -26,9 +26,10 @@ gen_ideal_hist <- function(total_reads, bin_edges, nboots=10000, rm.hom=TRUE){
     # Compute ECDF manually to ensure the same order of arguments in computing EMD
     vaf_cdf <- apply(vaf_model, MARGIN = 2, function(z){
         # TODO: can't seem to get farey sequence bins to work here...
-        # instead for now specifying number of bins to make.
         # For some reason this computes a different length result for each z...
-        return(hist(z, length(bin_edges), plot=FALSE)$density) 
+        Nx <- as.numeric(hist(z, breaks=bin_edges, plot=FALSE)$counts)
+        lx <- sum(Nx)
+        return(cumsum(Nx/lx))
     })
 
     # return the bootstrapped Vpr distribution and the cumulative density function (cdf) for this layer
