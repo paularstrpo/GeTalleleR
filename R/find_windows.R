@@ -34,7 +34,7 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=NULL, sensitivity=0.2,
     # Grab data in the segment we are looking at
     seg_filt <- (data$pos >= seg_start) & (data$pos <= seg_end)
 
-    if (length(seg_filt[seg_filt])==0){
+    if (length(data$pos[seg_filt])==0){
         return(print('Error: specified segment has zero sites.'))
     }
 
@@ -43,41 +43,40 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=NULL, sensitivity=0.2,
     ds_size <- nrow(data_sgmnt) # length of segment in terms of sites
 
 
-    ########## GENERATION OF WINDOWS ##########
-    smpl <- data_sgmnt[, 2]
+    # GENERATION OF WINDOWS
+
     # could instead set 'MinDistance', Lmin, to 11 ponints
-    iptsT <- cpt.mean(abs(smpl-0.5)+0.5, penalty='Manual', pen.value=sensitivity, class=FALSE)
+    iptsT <- cpt.meanvar(abs(data_sgmnt$pos-0.5)+0.5, penalty='Manual', pen.value=sensitivity)
+    # grab indeces for window edges
+    idx_all_edges <- c(seg_start, iptsT@cpts[1:iptsT@ncpts.max], ds_size)
 
-    idx_all_edges <- c(1, t(iptsT), ds_size)
-    idx_gap <- diff(idx_all_edges)<10){
-
-        # always keep the start point and merge with the second window instead
-        if (idx_gap(1)==1){
-            idx_gap(1) <- 0
-            idx_gap(2) <- 1
-        }
-
-    idx_all_edges(idx_gap) <- []
-    idx_win_start <- idx_all_edges(1:}-1)
-    idx_win_} <- [idx_all_edges(2:}-1)-1 ds_size]
-
-    nb_of_windows <- numel(idx_win_start)
-    ########## PUT DATA FROM WINDOWS INTO A STRUCTURE ##########
-    m <- struct([])
-    for (i in 1:nb_of_windows){
-        idx_window <- idx_win_start(i):idx_win_}(i)
-    m(i).win_data <- data_sgmnt(idx_window,:) # position, vafs as layers, changepoints
-    m(i).window <- idx_window
-    m(i).win_bp_length <- m(i).win_data(},1)-m(i).win_data(1,1)
+    # merge windows with less than a threshold number of points (or a threshold Vpr)
+    idx_gap <- diff(idx_all_edges<10)
+    # always keep the start point and merge with the second window instead
+    if (idx_gap[1]==1){
+        idx_gap[1] <- 0
+        idx_gap[2] <- 1
     }
 
+    # grab indeces for window starts & ends
+    idx_win_start <- idx_all_edges[1:length(idx_all_edges)-1]
+    idx_win_end <- idx_all_edges[2:length(idx_all_edges)]
 
-    res <- list(segment=data_sgmnt,
-                    total_length=ds_size,
-                    total_bp_length=end_pos-start_pos
-                    )
+    # save window information
+    m <- data.frame(window_start=data$pos[idx_win_start],
+                    window_end=data$pos[idx_win_end])
+
+    # genomic length of window
+    m$window_bp_length <- m$window_end - m$window_start
+    # length in terms of number of SNPs residing in the window
+    # m$window_site_length <-
+    # append layer vafs
+
+    res <- list(segment_inputs=data_sgmnt,
+                total_length=ds_size,
+                total_bp_length=end_pos-start_pos,
+                num_windows=nrow(m),
+                window_data=m)
 
     return(res)
-
-
 }
