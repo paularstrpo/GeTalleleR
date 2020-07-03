@@ -30,3 +30,10 @@ test_reads <- data %>%
 rownames(test_reads) <- paste(paste0('chr', test_reads$CHROM), test_reads$POS, test_reads$REF, test_reads$ALTA, sep='_')
 
 test_reads1 <- test_reads$X013_Ntr_BRCA_TCGA.BH.A0B8.11A
+
+dat2 <- data
+
+win_test <- test_vafs[test_vafs$CHROM == 1,]
+win_test <- win_test[order(win_test$POS),]
+win_test <- win_test[!is.na(win_test$POS)&!is.na(win_test$X013_Ttr_BRCA_TCGA.BH.A0B8.01A),]
+win_res <- find_windows(pos=win_test$POS, vaf = win_test$X013_Ttr_BRCA_TCGA.BH.A0B8.01A)
