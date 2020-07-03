@@ -3,17 +3,13 @@
 #' @param pos Integer or Numeric vector with genomic positions (within the same chromosome) to segment.
 #' @param vaf Numeric vector of VAF (variant allele frequencies) for a given layer. Must correspond to sites in pos.
 #' @param seg_start Where to start segmentation? Default is 1.
-#' @param seg_end Where to end segmentation? Default is the maximum value of `pos`.
-#' @param sensitivity Parameter for segmentation via findchangepoints
-#' @return a DF or list with the information: chromosome | layer_name | seg_start |  seg_end | genomic_length | num_sites | merged_window_idx | merged_window_start | merged_window_end | V(pr)
+#' @param seg_end Where to end segmentation? Default (0) uses the maximum value of `pos`.
+#' @param sensitivity Penalty value for segmentation via `changepoint::cpt.meanvar`
+#' @return a DF or list with information about windows and the vafs for SNPs within each window. (TODO: flesh this doc out more)
 
 find_windows <- function(pos, vaf, seg_start=1, seg_end=0, sensitivity=0.2){
-    # The authors make no representations about the suitability of this software for any purpose.
-    # It is provided "as is" without express or implied warranty.
-
-
-    # set up results list
-    res <- list()
+    # The authors make no representations about the suitability of this software
+    # for any purpose. It is provided "as is" without express or implied warranty.
 
     # data on the chromosome containing the segment of interest
     data <- data.frame(pos=pos, vaf=vaf) # data is a matrix with base-pairs and all layers
@@ -36,13 +32,15 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=0, sensitivity=0.2){
     ds_size <- nrow(data_sgmnt) # length of segment in terms of sites
 
     # GENERATE WINDOWS
-    # could instead set 'MinDistance', Lmin, to 11 ponints
-    iptsT <- cpt.meanvar(abs(data_sgmnt$pos-0.5)+0.5, penalty='Manual', pen.value=sensitivity)
+    # note: could instead set 'MinDistance', Lmin, to 11 ponints
+    # Uses the changepoint package:
+    iptsT <- changepoint::cpt.meanvar(abs(data_sgmnt$pos-0.5)+0.5, penalty='Manual', pen.value=sensitivity)
     # grab indeces for window edges
     idx_all_edges <- c(seg_start, iptsT@cpts[1:iptsT@ncpts.max], ds_size)
 
     # merge windows with less than a threshold number of points (or a threshold Vpr)
-    # always keep the start point and merge with the second window instead
+    # always keep the start point and merge with the second window instead.
+    # TODO: refine this!
     idx_gap <- diff(idx_all_edges<10)
     if (idx_gap[1]==1){
         idx_gap[1] <- 0
@@ -56,8 +54,7 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=0, sensitivity=0.2){
     # shift all but the last window ends by one to avoid double-counting the breakpoint
     idx_win_end[1:(length(idx_win_end)-1)] <- idx_win_end[1:(length(idx_win_end)-1)] + 1
 
-
-    # save window information
+    # save window information!
     m <- data.frame(window_start=data$pos[idx_win_start],
                     window_end=data$pos[idx_win_end])
 
@@ -69,14 +66,18 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=0, sensitivity=0.2){
         length(data_sgmnt$pos[idx_win_start[x]:idx_win_end[x]])
         })
 
-    # append layer vafs
+    # Append layer vafs
+    # TODO: silence the warnings for this!
     mlist <- lapply(1:nrow(m), function(x){
         meta <- m[x,]
-        vafs <-  data_sgmnt[data_sgmnt$pos >= meta$window_start & data_sgmnt$pos <= meta$window_end,]
+        # grab vafs that fall into a particular segment and
+        # bind them to the window bound information
+        vafs <-  data_sgmnt[data_sgmnt$pos >= meta$window_start &
+                                data_sgmnt$pos <= meta$window_end,]
         return(cbind(meta, vafs))
     })
 
-    # return results!
+    # return results in list format
     res <- list(segment_inputs=data_sgmnt,
                 total_length=ds_size,
                 total_bp_length=seg_end-seg_start,
