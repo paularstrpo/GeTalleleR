@@ -24,45 +24,47 @@ calc_window_vpr <- function(pos, vaf, seg_start=1, seg_end=0, sensitivity=0.2,
         fit_vpr(x = (abs(x$vaf-0.5)+0.5), models = models_cdf, bin_edges = bin_edges)
     })
 
-    # TODO: change to return a df of layer + positons in each segments
-    # [sorted_fitted_vprs, idx_sorted] <- order(fitted_vprs) # leftover matlab code
-
     # if : segment difference between V(pr)s in segment is less than a threshold of 0.011
     # then: combine segment with the previous one.
     d_fitted_vprs <- diff(fitted_vprs)
     idx_same_vprs <- which(abs(d_fitted_vprs) <= 0.011)
 
     while (idx_same_vprs != logical(0)){
-        # step 1: combine segments that fail the threshold with their predecessors.
-        # for (i in idx_same_vprs){
-        #     m(i).win_data <- [m(i).win_data; m(i+1).win_data]
-        #     m(i).window <- [m(i).window m(i+1).window]
-        #     m(i).win_bp_length <- m(i).win_bp_length+m(i+1).win_bp_length
-        #     idx_rm(i) <- i+1
-        # }
-        #
-        # # step 2
-        # for (i in 1:nrow(m)){
-        #     # folded_m <- abs(m(i).win_data(:,layer+1)-0.5)+0.5 # change to use layer map convention
-        #     fitted_vprs(i) <- fit_vpr(folded_m,models_mat(layer).models,bin_edges)
-        # }
 
-        # [sorted_fitted_vprs, idx_sorted] <- order(fitted_vprs)
-        # m <- m[idx_sorted, ]
+        # step 1: combine segments that fail the threshold with their predecessors.
+        new_wins <- lapply(idx_same_vprs, function(i)){
+            new_window <- rbind(win_res$result[[i]], win_res[[i-1]])
+            # update window bounds
+            new_window$window_start <- min(new_window$window_start)
+            new_window$window_end <- max(new_window$window_end)
+
+            # ensure we didn't let any duplicates occur
+            new_window <- new_window[!is.duplicated(new_window$pos),]
+            # update window bound metadata
+            new_window$window_site_length <- nrow(new_window)
+            new_window$window_bp_length <- new_window$window_end - new_window$window_start
+            return(new_window)
+        }
+
+        # step 2
+        new_vprs <- sapply(new_wins, function(x){
+            # get vpr for each layer using fit_vpr.r
+            fit_vpr(x = (abs(x$vaf-0.5)+0.5), models = models_cdf, bin_edges = bin_edges)
+        })
 
         # re-assess threshold for reducing segment size
-        d_fitted_vprs <- diff(sorted_fitted_vprs)
+        d_fitted_vprs <- diff(new_vprs)
         idx_same_vprs <- which(d_fitted_vprs <= 0.011)
     }
 
-    # Fit V(pr) after segmentation and compare to other layers - code
-    # This loop iterates over all the segments that were found to check:
-    #  - how many samples
-    #  - length of segment in terms of a) num points and b) genomic length
-    for (i in 1:length(win_res$result)){
-    # win_res$win_dp_length(i) <- numel(folded_m) # keep this
-    # win_res$win_bp_length(i) <- m(i).win_bp_length # keep this
-    # win_res$fitted_vprs[[i]] <- fit_vpr(folded_m, models_mat(k).models,bin_edges)
-    }
+    # TODO: combine window metadata with vprs
+    # TODO: combine new and old vpr (original-passed + new-combined) and return
 
+    # return dataframe with results!
+    res <- data.frame(window_start,
+                      window_end,
+                      window_length_sites,
+                      window_length_bp,
+                      Vpr)
+    return(res)
 }
