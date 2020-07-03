@@ -7,7 +7,7 @@
 #' @param sensitivity Parameter for segmentation via findchangepoints
 #' @return a DF or list with the information: chromosome | layer_name | seg_start |  seg_end | genomic_length | num_sites | merged_window_idx | merged_window_start | merged_window_end | V(pr)
 
-find_windows <- function(pos, vaf, seg_start=1, seg_end=NULL, sensitivity=0.2){
+find_windows <- function(pos, vaf, seg_start=1, seg_end=0, sensitivity=0.2){
     # The authors make no representations about the suitability of this software for any purpose.
     # It is provided "as is" without express or implied warranty.
 
@@ -20,7 +20,7 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=NULL, sensitivity=0.2){
     rm(pos, vaf)
 
     # if seg_end is not specified then use the largest positional value in the dataset.
-    if (is.null(seg_end)){
+    if (seg_end==0){
         seg_end <- max(as.numeric(data$pos))
     }
 
@@ -70,14 +70,19 @@ find_windows <- function(pos, vaf, seg_start=1, seg_end=NULL, sensitivity=0.2){
         })
 
     # append layer vafs
-    # TODO: save layer VAF integration w/ results for later...
+    mlist <- lapply(1:nrow(m), function(x){
+        meta <- m[x,]
+        vafs <-  data_sgmnt[data_sgmnt$pos >= meta$window_start & data_sgmnt$pos <= meta$window_end,]
+        return(cbind(meta, vafs))
+    })
 
     # return results!
     res <- list(segment_inputs=data_sgmnt,
                 total_length=ds_size,
-                total_bp_length=end_pos-start_pos,
+                total_bp_length=seg_end-seg_start,
                 num_windows=nrow(m),
-                window_data=m)
+                window_metadata=m,
+                result=mlist)
 
     return(res)
 }
